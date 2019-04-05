@@ -88,12 +88,56 @@ onevm_metrics_keys() {
   echo
 }
 
+onedatastore_metrics_keys() {
+  local NAME="$1"
+  local TAGS_L0="$(gen_tags .. ID UID GID NAME UNAME GNAME)"
+  shift
+  while (( "$#" )); do
+    case ${1^^} in
+      STATE|TOTAL_MB|FREE_MB|USED_MB)
+        echo -n " -t -m 'DATASTORE_POOL/DATASTORE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
+      ;;
+      IMAGES|CLUSTERS)
+        echo -n " -t -m 'DATASTORE_POOL/DATASTORE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'count(ID)' -n"
+      ;;
+    esac
+    shift
+  done
+  echo
+}
+
+onevnet_metrics_keys() {
+  local NAME="$1"
+  local TAGS_L0="$(gen_tags .. ID UID GID NAME UNAME GNAME)"
+  shift
+  while (( "$#" )); do
+    case ${1^^} in
+      SIZE|USED_LEASES)
+        echo -n " -t -m 'VNET_POOL/VNET/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'sum(AR/${1^^})' -n"
+      ;;
+      CLUSTERS|VROUTERS)
+        echo -n " -t -m 'VNET_POOL/VNET/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'count(ID)' -n"
+      ;;
+    esac
+    shift
+  done
+  echo
+}
+
 onehost_metrics() {
   eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host "$@")"
 }
 
 onevm_metrics() {
   eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm "$@")"
+}
+
+onedatastore_metrics() {
+  eval "onedatastore list -x | xmlstarlet sel $(onedatastore_metrics_keys opennebula_datastore "$@")"
+}
+
+onevnet_metrics() {
+  eval "onevnet list -x | xmlstarlet sel $(onevnet_metrics_keys opennebula_vnets "$@")"
 }
 
 # Common statistic
@@ -105,3 +149,5 @@ oneimage_count
 # Detailed metrics
 onehost_metrics DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM
 onevm_metrics TOTAL_CPU USED_CPU TOTAL_MEM USED_MEM
+onedatastore_metrics TOTAL_MB FREE_MB USED_MB
+onevnet_metrics SIZE USED_LEASES
