@@ -1,5 +1,25 @@
 #!/bin/sh
 
+count_state() {
+  awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_vm_count{state=\""i"\"}", stat[i] }'
+}
+
+onehost_count() {
+  onehost list --csv --list STAT | awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_host_count{state=\""i"\"}", stat[i] }'
+}
+
+onevm_count() {
+  onevm list --csv --list STAT | count_state
+}
+
+onedatastore_count() {
+  onedatastore list --csv --list STAT | count_state
+}
+
+oneimage_count() {
+  oneimage list --csv --list STAT | count_state
+}
+
 gen_tags() {
   local TAG_PATH="$1"
   shift
@@ -38,14 +58,6 @@ onehost_metrics_keys() {
   echo
 }
 
-onehost_metrics() {
-  eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host "$@")"
-}
-
-onehost_count() {
-  onehost list --csv --list STAT | awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_host_count{state=\""i"\"}", stat[i] }'
-}
-
 onevm_metrics_keys() {
   local NAME="$1"
   local TAGS_L0="$(gen_tags .. ID UID GID NAME UNAME GNAME)"
@@ -76,17 +88,19 @@ onevm_metrics_keys() {
   echo
 }
 
-onevm_metrics() {
-  eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm "$@")"
+onehost_metrics() {
+  eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host "$@")"
 }
 
-onevm_count() {
-  onevm list --csv --list STAT | awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_vm_count{state=\""i"\"}", stat[i] }' 
+onevm_metrics() {
+  eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm "$@")"
 }
 
 # Common statistic
 onehost_count
 onevm_count
+onedatastore_count
+oneimage_count
 
 # Detailed metrics
 onehost_metrics DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM
