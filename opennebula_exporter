@@ -125,19 +125,23 @@ onevnet_metrics_keys() {
 }
 
 onehost_metrics() {
-  eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host "$@")"
+  local METRICS=${@:-DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM}
+  eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host $METRICS)"
 }
 
 onevm_metrics() {
-  eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm "$@")"
+  local METRICS=${@:-TOTAL_CPU USED_CPU TOTAL_MEM USED_MEM}
+  eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm $METRICS)"
 }
 
 onedatastore_metrics() {
-  eval "onedatastore list -x | xmlstarlet sel $(onedatastore_metrics_keys opennebula_datastore "$@")"
+  local METRICS=${@:-TOTAL_MB FREE_MB USED_MB}
+  eval "onedatastore list -x | xmlstarlet sel $(onedatastore_metrics_keys opennebula_datastore $METRICS)"
 }
 
 onevnet_metrics() {
-  eval "onevnet list -x | xmlstarlet sel $(onevnet_metrics_keys opennebula_vnets "$@")"
+  local METRICS=${@:-SIZE USED_LEASES}
+  eval "onevnet list -x | xmlstarlet sel $(onevnet_metrics_keys opennebula_vnets $METRICS)"
 }
 
 # Common statistic
@@ -147,7 +151,7 @@ onedatastore_count
 oneimage_count
 
 # Detailed metrics
-onehost_metrics DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM
-onevm_metrics TOTAL_CPU USED_CPU TOTAL_MEM USED_MEM
-onedatastore_metrics TOTAL_MB FREE_MB USED_MB
-onevnet_metrics SIZE USED_LEASES
+onehost_metrics
+onevm_metrics
+onedatastore_metrics
+onevnet_metrics
