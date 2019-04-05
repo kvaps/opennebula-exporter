@@ -1,0 +1,93 @@
+#!/bin/sh
+
+gen_tags() {
+  local TAG_PATH="$1"
+  shift
+  echo -n '-o "{"'
+  NUM=0
+  while (( "$#" )); do
+    if [ $NUM -gt 0 ]; then
+      echo -n ","
+    fi
+    echo -n " -o \"${1,,}=\\\"\" -v \"${TAG_PATH}/${1^^}\" -o \\\""
+    shift
+    local NUM=$(($NUM+1))
+  done
+  echo -n ' -o "} "'
+}
+
+onehost_metrics_keys() {
+  local NAME="$1"
+  local TAGS_L0="$(gen_tags .. ID NAME CLUSTER)"
+  local TAGS_L1="$(gen_tags ../.. ID NAME CLUSTER)"
+  shift
+  while (( "$#" )); do
+    case ${1^^} in
+      STATE|LAST_MON_TIME)
+        echo -n " -t -m 'HOST_POOL/HOST/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
+      ;;
+      DISK_USAGE|MEM_USAGE|CPU_USAGE|TOTAL_MEM|TOTAL_CPU|MAX_DISK|MAX_MEM|MAX_CPU|FREE_DISK|FREE_MEM|FREE_CPU|USED_DISK|USED_MEM|USED_CPU|RUNNING_VMS)
+        echo -n " -t -m 'HOST_POOL/HOST/HOST_SHARE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
+      ;;
+      CPUSPEED|NETRX|NETTX|RESERVED_CPU|RESERVED_MEM)
+        echo -n " -t -m 'HOST_POOL/HOST/TEMPLATE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
+      ;;
+    esac
+    shift
+  done
+  echo
+}
+
+onehost_metrics() {
+  eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host "$@")"
+}
+
+onehost_count() {
+  onehost list --csv --list STAT | awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_host_count{state=\""i"\"}", stat[i] }'
+}
+
+onevm_metrics_keys() {
+  local NAME="$1"
+  local TAGS_L0="$(gen_tags .. ID UID GID NAME UNAME GNAME)"
+  local TAGS_L1="$(gen_tags ../.. ID UID GID NAME UNAME GNAME)"
+  shift
+  while (( "$#" )); do
+    local PARAM=${1^^}
+    case $PARAM in
+      STATE|LCM_STATE|LAST_MON_TIME|STIME|ETIME|LAST_POLL)
+        echo -n " -t -m 'VM_POOL/VM/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
+      ;;
+      TOTAL_CPU|TOTAL_MEM|USED_CPU|USED_MEM)
+        if [ "${PARAM%%_*}" = "TOTAL" ]; then
+          local FROM=TEMPLATE
+        else
+          local FROM=MONITORING
+        fi
+        if [ "${PARAM##*_}" = "MEM" ]; then
+          local PARAM=MEMORY
+        else
+          local PARAM="${PARAM##*_}"
+        fi
+        echo -n " -t -m 'VM_POOL/VM/$FROM/$PARAM' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
+      ;;
+    esac
+    shift
+  done
+  echo
+}
+
+onevm_metrics() {
+  eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm "$@")"
+}
+
+onevm_count() {
+  onevm list --csv --list STAT | awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_vm_count{state=\""i"\"}", stat[i] }' 
+}
+
+# Common statistic
+onehost_count
+onevm_count
+
+# Detailed metrics
+onehost_metrics DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM
+onevm_metrics TOTAL_CPU USED_CPU TOTAL_MEM USED_MEM
