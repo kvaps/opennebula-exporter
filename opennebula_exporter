@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 count_state() {
   awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_vm_count{state=\""i"\"}", stat[i] }'
@@ -44,13 +44,13 @@ onehost_metrics_keys() {
   while (( "$#" )); do
     case ${1^^} in
       STATE|LAST_MON_TIME)
-        echo -n " -t -m 'HOST_POOL/HOST/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
+        echo -n " -t -m 'HOST_POOL/HOST/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
       ;;
       DISK_USAGE|MEM_USAGE|CPU_USAGE|TOTAL_MEM|TOTAL_CPU|MAX_DISK|MAX_MEM|MAX_CPU|FREE_DISK|FREE_MEM|FREE_CPU|USED_DISK|USED_MEM|USED_CPU|RUNNING_VMS)
-        echo -n " -t -m 'HOST_POOL/HOST/HOST_SHARE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
+        echo -n " -t -m 'HOST_POOL/HOST/HOST_SHARE/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
       ;;
       CPUSPEED|NETRX|NETTX|RESERVED_CPU|RESERVED_MEM)
-        echo -n " -t -m 'HOST_POOL/HOST/TEMPLATE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
+        echo -n " -t -m 'HOST_POOL/HOST/TEMPLATE/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
       ;;
     esac
     shift
@@ -67,7 +67,7 @@ onevm_metrics_keys() {
     local PARAM=${1^^}
     case $PARAM in
       STATE|LCM_STATE|LAST_MON_TIME|STIME|ETIME|LAST_POLL)
-        echo -n " -t -m 'VM_POOL/VM/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
+        echo -n " -t -m 'VM_POOL/VM/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
       ;;
       TOTAL_CPU|TOTAL_MEM|USED_CPU|USED_MEM)
         if [ "${PARAM%%_*}" = "TOTAL" ]; then
@@ -80,7 +80,7 @@ onevm_metrics_keys() {
         else
           local PARAM="${PARAM##*_}"
         fi
-        echo -n " -t -m 'VM_POOL/VM/$FROM/$PARAM' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
+        echo -n " -t -m 'VM_POOL/VM/$FROM/$PARAM[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L1 -v . -n"
       ;;
     esac
     shift
@@ -95,7 +95,7 @@ onedatastore_metrics_keys() {
   while (( "$#" )); do
     case ${1^^} in
       STATE|TOTAL_MB|FREE_MB|USED_MB)
-        echo -n " -t -m 'DATASTORE_POOL/DATASTORE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
+        echo -n " -t -m 'DATASTORE_POOL/DATASTORE/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
       ;;
       IMAGES|CLUSTERS)
         echo -n " -t -m 'DATASTORE_POOL/DATASTORE/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'count(ID)' -n"
@@ -113,7 +113,7 @@ onevnet_metrics_keys() {
   while (( "$#" )); do
     case ${1^^} in
       SIZE|USED_LEASES)
-        echo -n " -t -m 'VNET_POOL/VNET/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'sum(AR/${1^^})' -n"
+        echo -n " -t -m 'VNET_POOL/VNET/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'sum(AR/${1^^})' -n"
       ;;
       CLUSTERS|VROUTERS)
         echo -n " -t -m 'VNET_POOL/VNET/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'count(ID)' -n"
