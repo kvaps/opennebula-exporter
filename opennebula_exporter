@@ -1,23 +1,23 @@
 #!/bin/bash
 
 count_state() {
-  awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_vm_count{state=\""i"\"}", stat[i] }'
+  awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_'"$1"'_count{state=\""i"\"}", stat[i] }'
 }
 
 onehost_count() {
-  onehost list --csv --list STAT | awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_host_count{state=\""i"\"}", stat[i] }'
+  onehost list --csv --list STAT | count_state host
 }
 
 onevm_count() {
-  onevm list --csv --list STAT | count_state
+  onevm list --csv --list STAT | count_state vm
 }
 
 onedatastore_count() {
-  onedatastore list --csv --list STAT | count_state
+  onedatastore list --csv --list STAT | count_state datastore
 }
 
 oneimage_count() {
-  oneimage list --csv --list STAT | count_state
+  oneimage list --csv --list STAT | count_state image
 }
 
 gen_tags() {
@@ -125,17 +125,17 @@ onevnet_metrics_keys() {
 }
 
 onehost_metrics() {
-  local METRICS=${@:-DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM}
+  local METRICS=${@:-STATE DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM}
   eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host $METRICS)"
 }
 
 onevm_metrics() {
-  local METRICS=${@:-TOTAL_CPU USED_CPU TOTAL_MEM USED_MEM}
+  local METRICS=${@:-STATE LCM_STATE TOTAL_CPU USED_CPU TOTAL_MEM USED_MEM}
   eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm $METRICS)"
 }
 
 onedatastore_metrics() {
-  local METRICS=${@:-TOTAL_MB FREE_MB USED_MB}
+  local METRICS=${@:-STATE TOTAL_MB FREE_MB USED_MB}
   eval "onedatastore list -x | xmlstarlet sel $(onedatastore_metrics_keys opennebula_datastore $METRICS)"
 }
 
@@ -144,11 +144,11 @@ onevnet_metrics() {
   eval "onevnet list -x | xmlstarlet sel $(onevnet_metrics_keys opennebula_vnets $METRICS)"
 }
 
-# Common statistic
-onehost_count
-onevm_count
-onedatastore_count
-oneimage_count
+## Common statistic
+#onehost_count
+#onevm_count
+#onedatastore_count
+#oneimage_count
 
 # Detailed metrics
 onehost_metrics
