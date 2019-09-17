@@ -112,8 +112,11 @@ onevnet_metrics_keys() {
   shift
   while (( "$#" )); do
     case ${1^^} in
-      SIZE|USED_LEASES)
+      SIZE)
         echo -n " -t -m 'VNET_POOL/VNET/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'sum(AR/${1^^})' -n"
+      ;;
+      USED_LEASES)
+        echo -n " -t -m 'VNET_POOL/VNET/${1^^}[string-length(text()) > 0]' -o '${NAME,,}_${1,,}' $TAGS_L0 -v . -n"
       ;;
       CLUSTERS|VROUTERS)
         echo -n " -t -m 'VNET_POOL/VNET/${1^^}' -o '${NAME,,}_${1,,}' $TAGS_L0 -v 'count(ID)' -n"
