@@ -1,8 +1,22 @@
 #!/bin/bash
+set -e
 
 count_state() {
   awk '!/STAT/ { stat[$0] += 1 } END { for (i in stat) print "opennebula_'"$1"'_count{state=\""i"\"}", stat[i] }'
 }
+
+parse_metrics() {(
+  set +e
+  eval xmlstarlet sel $@
+  RET_CODE=$?
+  case $RET_CODE in
+    0|1)
+      return 0
+      ;;
+    *)
+      return $RET_CODE
+  esac
+)}
 
 onehost_count() {
   onehost list --csv --list STAT | count_state host
@@ -129,22 +143,22 @@ onevnet_metrics_keys() {
 
 onehost_metrics() {
   local METRICS=${@:-STATE DISK_USAGE MEM_USAGE CPU_USAGE TOTAL_MEM TOTAL_CPU MAX_DISK MAX_MEM MAX_CPU FREE_DISK FREE_MEM FREE_CPU USED_DISK USED_MEM USED_CPU CPUSPEED NETRX NETTX RESERVED_CPU RESERVED_MEM}
-  eval "onehost list -x | xmlstarlet sel $(onehost_metrics_keys opennebula_host $METRICS)"
+  onehost list -x | parse_metrics $(onehost_metrics_keys opennebula_host $METRICS)
 }
 
 onevm_metrics() {
   local METRICS=${@:-STATE LCM_STATE TOTAL_CPU USED_CPU TOTAL_MEM USED_MEM}
-  eval "onevm list -x | xmlstarlet sel $(onevm_metrics_keys opennebula_vm $METRICS)"
+  onevm list -x | parse_metrics $(onevm_metrics_keys opennebula_vm $METRICS)
 }
 
 onedatastore_metrics() {
   local METRICS=${@:-STATE TOTAL_MB FREE_MB USED_MB}
-  eval "onedatastore list -x | xmlstarlet sel $(onedatastore_metrics_keys opennebula_datastore $METRICS)"
+  onedatastore list -x | parse_metrics $(onedatastore_metrics_keys opennebula_datastore $METRICS)
 }
 
 onevnet_metrics() {
   local METRICS=${@:-SIZE USED_LEASES}
-  eval "onevnet list -x | xmlstarlet sel $(onevnet_metrics_keys opennebula_vnets $METRICS)"
+  onevnet list -x | parse_metrics $(onevnet_metrics_keys opennebula_vnets $METRICS)
 }
 
 ## Common statistic
